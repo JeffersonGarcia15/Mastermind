@@ -25,9 +25,6 @@ def start_game():
             "solution": sequence,
             "attempts_left": 10
         }
-        
-        print("GAME STATES", game_states)
-    
 
         return {
             "data": [
@@ -57,8 +54,6 @@ def make_guess():
         
         correct_positions, correct_numbers_only = hints 
         attempts_left -= 1
-        
-        print("THE HINTS", hints)
 
         # Check if all of the positions and numbers are correct!
         if correct_positions == len(sequence):
