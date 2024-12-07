@@ -6,3 +6,4 @@ lib/
 *.pyo
 *.log
 *.cfg
+.env
