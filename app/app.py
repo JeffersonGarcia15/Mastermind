@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 from .api.game_routes import game_routes
 from .rate_limiter import limiter
+from .utils.responses import error_response
 
 app = Flask(__name__)
 
@@ -21,6 +22,12 @@ limiter.init_app(app)
 app.register_blueprint(game_routes, url_prefix="/api/game")
 
 CORS(app)
+
+# As per the docs: For example, an error handler for HTTPException might be useful for turning the default HTML errors pages into JSON.
+# https://flask.palletsprojects.com/en/stable/errorhandling/
+@app.errorhandler(429)
+def ratelimit_handler(error):
+    return error_response("Rate limit exceeded: 5 per minute.", 429)    
 
 
 @app.route("/")
