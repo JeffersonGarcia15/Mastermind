@@ -1,4 +1,6 @@
 from flask import Flask
+from .rate_limiter import limiter, cors
+from .utils.responses import error_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -17,7 +19,8 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
-    CORS(app)
+    limiter.init_app(app)
+    cors.init_app(app)
 
     # Added this because I wanted to follow the convention of /api/*
     from .api.game_routes import game_routes
@@ -28,6 +31,12 @@ def create_app():
     from .models.game import Game, game_user_id_index
     from .models.attempt import Attempt, attempt_game_id_index
     from .models.match_record import MatchRecord, match_record_score_index
+    
+    # As per the docs: For example, an error handler for HTTPException might be useful for turning the default HTML errors pages into JSON.
+    # https://flask.palletsprojects.com/en/stable/errorhandling/
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        return error_response("Rate limit exceeded: 5 per minute.", 429)    
 
     @app.cli.command("create-db")
     def create_db():
