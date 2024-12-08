@@ -50,7 +50,8 @@ def start_game(difficulty):
     game_id = str(uuid.uuid4())
     game_states[game_id] = {
         "solution": sequence,
-        "attempts_left": 10
+        "attempts_left": 10,
+        "status": "ongoing"
     }
 
     return success_response({
@@ -69,19 +70,21 @@ def make_guess():
             return error_response("Invalid request format.", 400)
         
         game_id = request_json["game_id"]
-        guess = request_json["guess"]
-        current_game = game_states[game_id]
-        sequence = current_game["solution"]
-        attempts_left = current_game["attempts_left"]
         
         if game_id not in game_states:
             return error_response("Game ID not found.", 404)
         
+        guess = request_json["guess"]
+        current_game = game_states[game_id]
+        sequence = current_game["solution"]
+        attempts_left = current_game["attempts_left"]
+        status = current_game["status"]
+        
+        if status in ["win", "lose"]:
+            return error_response("This game has already ended.", 400)
+        
         if not isinstance(guess, str) or len(guess) != len(sequence) or not guess.isdigit():
             return error_response(f"Guess must be a {len(sequence)}-digit string.", 400)
-        
-        if attempts_left == 0:
-            return error_response("This game has already ended.", 400)
          
         hints = get_hint(sequence, guess)
         
@@ -90,6 +93,8 @@ def make_guess():
 
         # Check if all of the positions and numbers are correct!
         if correct_positions == len(sequence):
+            current_game["status"] = "win"
+            current_game["attempts_left"] = attempts_left
             return success_response({
                         "correct_positions": correct_positions,
                         "correct_numbers_only": correct_numbers_only,
@@ -99,6 +104,8 @@ def make_guess():
             
         # If not all but guess attempts_left is 0 then you lose!
         if correct_positions != len(sequence) and attempts_left == 0:
+            current_game["status"] = "lose"
+            current_game["attempts_left"] = attempts_left
             return success_response({
                         "correct_positions": correct_positions,
                         "correct_numbers_only": correct_numbers_only,
