@@ -11,5 +11,15 @@ class Attempt(db.Model):
     hints = db.Column(db.String(10), nullable=False)
     time = db.Column(db.TIMESTAMP, default=datetime.datetime.now)
     
+
+    def to_dict(self):
+        """Convert the Attempt object into a dictionary."""
+        return {
+            "id": self.id,
+            "game_id": str(self.game_id),
+            "guess": self.guess,
+            "hints": self.hints,
+            "time": self.time.isoformat()
+        }
 # Since I forgot to add index=true when creating the db, I will add them separately to avoid dropping the db
 attempt_game_id_index = Index("attempt_game_id_index", Attempt.game_id)
