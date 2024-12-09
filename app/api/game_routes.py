@@ -6,6 +6,8 @@ from ..rate_limiter import limiter
 from ..utils.responses import success_response, error_response
 from ..utils.generate_local_sequence import generate_local_sequence
 from ..models.game import Game, Difficulty
+from ..models.attempt import Attempt
+from ..models.match_record import MatchRecord, Result
 from app import db
 
 from ..utils.get_hint import get_hint
@@ -85,25 +87,44 @@ def make_guess():
             return error_response("Invalid request format.", 400)
         
         game_id = request_json["game_id"]
-        
-        if game_id not in game_states:
-            return error_response("Game ID not found.", 404)
-        
         guess = request_json["guess"]
-        current_game = game_states[game_id]
-        sequence = current_game["solution"]
-        attempts_left = current_game["attempts_left"]
-        status = current_game["status"]
+        
+        # current_game = game_states[game_id]
+        
+        # NOTE docs for print statements not showing on flask and docker container
+        # https://stackoverflow.com/questions/60773195/docker-compose-flask-app-not-printing-output-from-print
+        # https://stackoverflow.com/questions/44405708/flask-doesnt-print-to-console
+        print("AM I AT LEAST HERE??????!!!!!!!!!!!!!!!!!!!", flush=True)
+        
+        # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.first
+        game = Game.query.filter_by(game_id = game_id).first()
+        status = game.status
+        sequence = game.solution
+        print("THIS IS THE GAME****************", game, flush=True)
+        
+        if not game:
+            return error_response("Game ID not found.", 404)
         
         if status in ["win", "lose"]:
             return error_response("This game has already ended.", 400)
         
         if not isinstance(guess, str) or len(guess) != len(sequence) or not guess.isdigit():
             return error_response(f"Guess must be a {len(sequence)}-digit string.", 400)
+        
+        attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
          
         hints = get_hint(sequence, guess)
         
         correct_positions, correct_numbers_only = hints 
+        
+        attempt = Attempt(
+            game_id = game.id,
+            guess = guess,
+            hints = f"{correct_positions} correct positions, {correct_numbers_only} correct numbers"
+        )
+        db.session.add(attempt)
+        db.session.commit()
+        
         attempts_left -= 1
         
         response_data = {
@@ -113,25 +134,35 @@ def make_guess():
                         "status": "ongoing"  # could be "win", "lose", or "ongoing"
                     }
 
-        # Check if all of the positions and numbers are correct!
+        # # Check if all of the positions and numbers are correct!
         if correct_positions == len(sequence):
-            current_game["status"] = "win"
-            current_game["attempts_left"] = attempts_left
             response_data["status"] = "win"
             response_data["solution"] = sequence
+            match_record = MatchRecord(
+                game_id = game.id,
+                result = Result.win,
+                score = attempts_left
+            )
+            db.session.add(match_record)
+            db.session.commit()
             return success_response(response_data)
             
         # If not all but guess attempts_left is 0 then you lose!
         if correct_positions != len(sequence) and attempts_left == 0:
-            current_game["status"] = "lose"
-            current_game["attempts_left"] = attempts_left
             response_data["status"] = "lose"
             response_data["solution"] = sequence
+            match_record = MatchRecord(
+                game_id = game.id,
+                result = Result.lose,
+                score = 0
+            )
+            db.session.add(match_record)
+            db.session.commit()
             return success_response(response_data)
                 
         
-        # The game is yet to finish
-        current_game["attempts_left"] = attempts_left
+        # # The game is yet to finish
+        # current_game["attempts_left"] = attempts_left
         
         return success_response(response_data)
             
