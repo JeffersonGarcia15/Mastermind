@@ -89,23 +89,20 @@ def make_guess():
         game_id = request_json["game_id"]
         guess = request_json["guess"]
         
-        # current_game = game_states[game_id]
-        
         # NOTE docs for print statements not showing on flask and docker container
         # https://stackoverflow.com/questions/60773195/docker-compose-flask-app-not-printing-output-from-print
         # https://stackoverflow.com/questions/44405708/flask-doesnt-print-to-console
-        print("AM I AT LEAST HERE??????!!!!!!!!!!!!!!!!!!!", flush=True)
-        
         # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.first
-        game = Game.query.filter_by(game_id = game_id).first()
-        status = game.status
+        game = Game.query.filter_by(id = game_id).first()
         sequence = game.solution
-        print("THIS IS THE GAME****************", game, flush=True)
-        
+        match_record_data = MatchRecord.query.filter_by(game_id = game.id).first()
+        status = None
+        if match_record_data:
+            status = match_record_data.result
         if not game:
             return error_response("Game ID not found.", 404)
         
-        if status in ["win", "lose"]:
+        if status and status.value in ["win", "lose"]:
             return error_response("This game has already ended.", 400)
         
         if not isinstance(guess, str) or len(guess) != len(sequence) or not guess.isdigit():
@@ -159,13 +156,8 @@ def make_guess():
             db.session.add(match_record)
             db.session.commit()
             return success_response(response_data)
-                
         
-        # # The game is yet to finish
-        # current_game["attempts_left"] = attempts_left
-        
-        return success_response(response_data)
-            
+        return success_response(response_data)     
         
     except Exception as error:
         return error_response(str(error), 500)

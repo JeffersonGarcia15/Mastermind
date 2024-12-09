@@ -13,7 +13,7 @@ class MatchRecord(db.Model):
     game_id = db.Column(UUID(as_uuid=True), db.ForeignKey("games.id"))
     result = db.Column(db.Enum(Result), nullable=False)
     score = db.Column(db.Integer, nullable=False)
-    time_taken = db.Column(db.Interval, nullable=False)
+    time_taken = db.Column(db.Interval, nullable=True)
    
     def to_dict(self):
         """Convert the MatchRecord object into a dictionary."""

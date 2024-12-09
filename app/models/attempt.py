@@ -8,7 +8,7 @@ class Attempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     game_id = db.Column(UUID(as_uuid=True), db.ForeignKey("games.id"))
     guess = db.Column(db.String(10), nullable=False)
-    hints = db.Column(db.String(10), nullable=False)
+    hints = db.Column(db.String(255), nullable=False)
     time = db.Column(db.TIMESTAMP, default=datetime.datetime.now) 
 
     def to_dict(self):
