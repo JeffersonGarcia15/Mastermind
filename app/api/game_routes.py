@@ -5,6 +5,8 @@ import uuid
 from ..rate_limiter import limiter
 from ..utils.responses import success_response, error_response
 from ..utils.generate_local_sequence import generate_local_sequence
+from ..models.game import Game, Difficulty
+from app import db
 
 from ..utils.get_hint import get_hint
 
@@ -51,27 +53,26 @@ def start_game(difficulty):
     sequence, fallback_used, err = fetch_random_sequence(difficulty)
     
     if err and not fallback_used:
-        return error_response(err)
+        return error_response(err, 400)
     
-    game_id = str(uuid.uuid4())
-    game_states[game_id] = {
-        "solution": sequence,
-        "attempts_left": 10,
-        "status": "ongoing"
-    }
+    # https://docs.sqlalchemy.org/en/20/orm/quickstart.html#create-objects-and-persist 
     
-    if err:
-        return success_response({
-            "game_id": game_id,
-            "length": len(sequence),
-            "is_sequence_locally_generated": fallback_used
-        })
-
-    return success_response({
-        "game_id": game_id,
+    game = Game(
+        user_id=None,
+        difficulty=Difficulty(difficulty),
+        solution=sequence,
+        fallback_used=fallback_used
+    )
+    db.session.add(game)
+    db.session.commit()
+    
+    response_data = {
+        "game_id": str(game.id),
         "length": len(sequence),
-        "is_sequence_locally_generated": fallback_used
-    })
+        "is_sequence_locally_generated": fallback_used 
+    }
+
+    return success_response(response_data)
         
 
 @game_routes.route("/guess", methods=["POST"])
