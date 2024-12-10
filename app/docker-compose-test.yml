@@ -14,7 +14,7 @@ services:
     volumes:
       - test_db_data:/var/lib/postgresql/data
 
-  app:
+  test_app:
     build:
       context: .
     container_name: mastermind_app_test

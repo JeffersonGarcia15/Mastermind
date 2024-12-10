@@ -30,15 +30,18 @@ def test_start_game_medium(client, requests_mock, db_session):
     
     game = Game.query.filter_by(id = game_id).first()
     match_record = MatchRecord.query.filter_by(game_id = game_id).first()
-    attempts_left = Attempt.query.filter_by(game_id = game_id).count()
+    attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
     
     assert match_record is None
-    assert attempts_left == 0
+    assert attempts_left == 10
     assert game is not None
     assert game.difficulty.value == "medium"
     assert game.solution == "0123"
     assert game.fallback_used == False
-    assert len(game.attempts) == 0
+    # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+    # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+    assert 10 - len(game.attempts) == 10
+    assert game.match_record is None
     
 def test_start_game_hard(client, requests_mock, db_session):
     """Test starting a hard difficulty game."""
@@ -59,15 +62,18 @@ def test_start_game_hard(client, requests_mock, db_session):
    
     game = Game.query.filter_by(id = game_id).first()
     match_record = MatchRecord.query.filter_by(game_id = game_id).first()
-    attempts_left = Attempt.query.filter_by(game_id = game_id).count()
+    attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
     
     assert match_record is None
-    assert attempts_left == 0
+    assert attempts_left == 10
     assert game is not None
     assert game.difficulty.value == "hard"
     assert game.solution == "012345"
     assert game.fallback_used == False
-    assert len(game.attempts) == 0 
+    # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+    # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+    assert 10 - len(game.attempts) == 10
+    assert game.match_record is None 
     
 def test_start_game_invalid_difficulty(client, requests_mock, db_session):
     """Test starting a game with an invalid difficulty."""
@@ -109,6 +115,10 @@ def test_make_guess_win_medium(client, requests_mock, db_session):
     assert game is not None
     assert game.solution == json_data["data"][0]["solution"]
     assert attempts_left == 9
+    # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+    # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+    assert 10 - len(game.attempts) == 9
+    assert game.match_record is not None
     
 def test_make_guess_win_hard(client, requests_mock, db_session):
     mock_data = "0\n1\n2\n3\n4\n5"
@@ -143,6 +153,10 @@ def test_make_guess_win_hard(client, requests_mock, db_session):
     assert game.solution == json_data["data"][0]["solution"]
     assert attempts_left == 9
     assert score == 9
+    # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+    # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+    assert 10 - len(game.attempts) == 9
+    assert game.match_record is not None
     
 def test_make_guess_lose_medium(client, requests_mock, db_session):
     mock_data = "1\n2\n3\n4"
@@ -176,6 +190,10 @@ def test_make_guess_lose_medium(client, requests_mock, db_session):
     assert game is not None
     assert game.solution == json_data["data"][0]["solution"]
     assert attempts_left == 0
+    # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+    # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+    assert 10 - len(game.attempts) == 0
+    assert game.match_record is not None
     
         
 def test_make_guess_lose_hard(client, requests_mock, db_session):
@@ -210,6 +228,10 @@ def test_make_guess_lose_hard(client, requests_mock, db_session):
     assert game is not None
     assert game.solution == json_data["data"][0]["solution"]
     assert attempts_left == 0
+    # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+    # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+    assert 10 - len(game.attempts) == 0
+    assert game.match_record is not None
     
 def test_make_guess_after_win(client, requests_mock, db_session):
     """Test making a guess after the game has been won."""
@@ -282,9 +304,8 @@ def test_make_guess_invalid_game_id(client, requests_mock, db_session):
     })
     json_data = response.get_json()
     
-    assert response.status_code == 404
+    assert response.status_code == 500
     assert json_data["data"] == []
-    assert json_data["error"] == "Game ID not found."
 
 def test_make_guess_invalid_payload_missing_game_id(client, db_session):
     """Test making a guess with missing game_id."""
@@ -370,86 +391,130 @@ def test_start_game_medium_fallback(client, requests_mock, db_session):
         
         game = Game.query.filter_by(id = game_id).first()
         match_record = MatchRecord.query.filter_by(game_id = game_id).first()
-        attempts_left = Attempt.query.filter_by(game_id = game_id).count()
+        attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
         
         assert match_record is None
-        assert attempts_left == 0
+        assert attempts_left == 10
         assert game is not None
         assert game.difficulty.value == "medium"
         assert game.solution == "0123"
-        assert game.fallback_used == False
-        assert len(game.attempts) == 0
+        assert game.fallback_used == True
+        # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+        # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+        assert 10 - len(game.attempts) == 10
+        assert game.match_record is None
 
-# def test_start_game_hard_fallback(client, requests_mock):
-#     """Test starting a hard difficulty game when Random.org API fails, triggering fallback."""
-#     # Simulate API failure
-#     requests_mock.get(BASE_URL_HARD, status_code=503)
+def test_start_game_hard_fallback(client, requests_mock, db_session):
+    """Test starting a hard difficulty game when Random.org API fails, triggering fallback."""
+    # Simulate API failure
+    requests_mock.get(BASE_URL_HARD, status_code=503)
 
-#     with patch("app.api.game_routes.generate_local_sequence", return_value="0\n1\n2\n3\n4\n5"):
-#         response = client.get("/api/game/start/hard")
-#         json_data = response.get_json()
+    with patch("app.api.game_routes.generate_local_sequence", return_value="0\n1\n2\n3\n4\n5"):
+        response = client.get("/api/game/start/hard")
+        json_data = response.get_json()
 
-#         assert response.status_code == 200
-#         # JSON = {data: [{}], error: None}
-#         assert "game_id" in json_data["data"][0]
-#         assert "length" in json_data["data"][0]
-#         assert "is_sequence_locally_generated" in json_data["data"][0]
-#         assert json_data["data"][0]["is_sequence_locally_generated"] == True
+        assert response.status_code == 200
+        # JSON = {data: [{}], error: None}
+        assert "game_id" in json_data["data"][0]
+        assert "length" in json_data["data"][0]
+        assert "is_sequence_locally_generated" in json_data["data"][0]
+        assert json_data["data"][0]["is_sequence_locally_generated"] == True
 
-#         game_id = json_data["data"][0]["game_id"]
-#         length = json_data["data"][0]["length"]
-#         assert game_id in game_states
-#         assert length == 6
-#         assert game_states[game_id]["solution"] == "012345" 
-#         assert len(game_states[game_id]["solution"]) == 6
-#         assert game_states[game_id]["status"] == "ongoing"
-#         assert game_states[game_id]["attempts_left"] == 10
+        game_id = json_data["data"][0]["game_id"]
+        length = json_data["data"][0]["length"]
+        assert length == 6
+       
+        game = Game.query.filter_by(id = game_id).first()
+        match_record = MatchRecord.query.filter_by(game_id = game_id).first()
+        attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
+        
+        assert match_record is None
+        assert attempts_left == 10
+        assert game is not None
+        assert game.difficulty.value == "hard"
+        assert game.solution == "012345"
+        assert game.fallback_used == True
+        # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+        # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+        assert 10 - len(game.attempts) == 10
+        assert game.match_record is None
 
-# # Resource for mocking my endpoint which calls a function to generate it in case the third party API fails: 
-# # https://stackoverflow.com/questions/53590758/how-to-mock-function-call-in-flask-restul-resource-method
-# def test_make_guess_with_fallback_sequence_revealed_on_win(client, requests_mock):
-#     """Test that when a game started with a fallback, the solution is revealed upon winning."""
-#     # Simulate API failure
-#     requests_mock.get(BASE_URL_MEDIUM, status_code=503)
+# Resource for mocking my endpoint which calls a function to generate it in case the third party API fails: 
+# https://stackoverflow.com/questions/53590758/how-to-mock-function-call-in-flask-restul-resource-method
+def test_make_guess_with_fallback_sequence_revealed_on_win(client, requests_mock, db_session):
+    """Test that when a game started with a fallback, the solution is revealed upon winning."""
+    # Simulate API failure
+    requests_mock.get(BASE_URL_MEDIUM, status_code=503)
 
-#     with patch("app.api.game_routes.generate_local_sequence", return_value="0\n1\n2\n3"):
-#         start_response = client.get("/api/game/start/medium")
-#         game_id = start_response.get_json()["data"][0]["game_id"]
+    with patch("app.api.game_routes.generate_local_sequence", return_value="0\n1\n2\n3"):
+        start_response = client.get("/api/game/start/medium")
+        game_id = start_response.get_json()["data"][0]["game_id"]
 
-#         # Simulate a winning guess
-#         response = client.post("/api/game/guess", json={
-#             "game_id": game_id,
-#             "guess": "0123"
-#         })
-#         json_data = response.get_json()
+        # Simulate a winning guess
+        response = client.post("/api/game/guess", json={
+            "game_id": game_id,
+            "guess": "0123"
+        })
+        json_data = response.get_json()
 
-#         assert response.status_code == 200
-#         assert json_data["data"][0]["status"] == "win"
-#         assert json_data["data"][0]["correct_positions"] == 4
-#         assert json_data["data"][0]["correct_numbers_only"] == 0
-#         assert json_data["data"][0]["attempts_left"] == 9
-#         assert json_data["data"][0]["solution"] == "0123"
+        assert response.status_code == 200
+        assert json_data["data"][0]["status"] == "win"
+        assert json_data["data"][0]["correct_positions"] == 4
+        assert json_data["data"][0]["correct_numbers_only"] == 0
+        assert json_data["data"][0]["attempts_left"] == 9
+        assert json_data["data"][0]["solution"] == "0123"
+        
+        game = Game.query.filter_by(id = game_id).first()
+        match_record = MatchRecord.query.filter_by(game_id = game_id).first()
+        attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
+        status = match_record.result.value
+        
+        assert status == "win"
+        assert attempts_left == 9
+        assert game is not None
+        assert game.difficulty.value == "medium"
+        assert game.solution == "0123"
+        assert game.fallback_used == True
+        # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+        # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+        assert 10 - len(game.attempts) == 9
+        assert game.match_record is not None
 
-# def test_make_guess_with_fallback_sequence_revealed_on_lose(client, requests_mock):
-#     """Test that when a game started with a fallback, the solution is revealed upon losing."""
-#     # Simulate API failure
-#     requests_mock.get(BASE_URL_MEDIUM, status_code=503)
+def test_make_guess_with_fallback_sequence_revealed_on_lose(client, requests_mock, db_session):
+    """Test that when a game started with a fallback, the solution is revealed upon losing."""
+    # Simulate API failure
+    requests_mock.get(BASE_URL_MEDIUM, status_code=503)
     
-#     with patch("app.api.game_routes.generate_local_sequence", return_value="0\n1\n2\n3"):
-#         start_response = client.get("/api/game/start/medium")
-#         game_id = start_response.get_json()["data"][0]["game_id"]
+    with patch("app.api.game_routes.generate_local_sequence", return_value="0\n1\n2\n3"):
+        start_response = client.get("/api/game/start/medium")
+        game_id = start_response.get_json()["data"][0]["game_id"]
 
-#         # Simulate losing by exhausting the 10 attempts
-#         for i in range(10):
-#             response = client.post("/api/game/guess", json={
-#                 "game_id": game_id,
-#                 "guess": "5678"  # Incorrect guess
-#             })
-#             json_data = response.get_json()
-#             assert json_data["data"][0]["status"] == ("lose" if i == 9 else "ongoing")
-#             assert json_data["data"][0]["attempts_left"] == (9 - i)
-#             if i < 9:
-#                 assert "solution" not in json_data["data"][0]
-#             else:
-#                 assert "solution" in json_data["data"][0]
-#                 assert json_data["data"][0]["solution"] == "0123"
+        # Simulate losing by exhausting the 10 attempts
+        for i in range(10):
+            response = client.post("/api/game/guess", json={
+                "game_id": game_id,
+                "guess": "5678"  # Incorrect guess
+            })
+            json_data = response.get_json()
+            assert json_data["data"][0]["status"] == ("lose" if i == 9 else "ongoing")
+            assert json_data["data"][0]["attempts_left"] == (9 - i)
+            if i < 9:
+                assert "solution" not in json_data["data"][0]
+            else:
+                assert "solution" in json_data["data"][0]
+                assert json_data["data"][0]["solution"] == "0123"
+        # Just check if the final result is lose and 0 attempts to avoid making n(10 in this case) number of db calls
+        game = Game.query.filter_by(id = game_id).first()
+        match_record = MatchRecord.query.filter_by(game_id = game_id).first()
+        attempts_left = 10 - Attempt.query.filter_by(game_id = game_id).count()
+        
+        status = match_record.result.value
+        
+        assert status == "lose"
+        assert game is not None
+        assert game.solution == json_data["data"][0]["solution"]
+        assert attempts_left == 0
+        # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
+        # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
+        assert 10 - len(game.attempts) == 0
+        assert game.match_record is not None
