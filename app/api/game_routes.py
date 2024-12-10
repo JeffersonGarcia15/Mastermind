@@ -94,13 +94,13 @@ def make_guess():
         # https://stackoverflow.com/questions/44405708/flask-doesnt-print-to-console
         # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.first
         game = Game.query.filter_by(id = game_id).first()
+        if not game:
+            return error_response("Game ID not found.", 404)
         sequence = game.solution
         match_record_data = MatchRecord.query.filter_by(game_id = game.id).first()
         status = None
         if match_record_data:
             status = match_record_data.result
-        if not game:
-            return error_response("Game ID not found.", 404)
         
         if status and status.value in ["win", "lose"]:
             return error_response("This game has already ended.", 400)
