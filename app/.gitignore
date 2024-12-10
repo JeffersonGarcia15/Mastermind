@@ -6,3 +6,5 @@ lib/
 *.pyo
 *.log
 *.cfg
+.env
+.env.test
