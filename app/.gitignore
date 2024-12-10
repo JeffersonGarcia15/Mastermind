@@ -7,3 +7,4 @@ lib/
 *.log
 *.cfg
 .env
+.env.test

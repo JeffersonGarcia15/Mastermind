@@ -1,0 +1,34 @@
+# https://www.reddit.com/r/docker/comments/13kxfjf/how_to_handle_dockercompose_for_production_and/
+# https://stackoverflow.com/questions/62871280/should-i-have-multiple-docker-compose-files
+
+version: "3.8"
+
+services:
+  test_db:
+    image: postgres:14
+    container_name: mastermind_db_test
+    env_file:
+      - ./.env.test
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+    container_name: mastermind_app_test
+    env_file:
+      - ./.env.test
+    environment:
+      FLASK_APP: app
+      FLASK_ENV: development
+    ports:
+      - "5001:5000"
+    depends_on:
+      - test_db
+    volumes:
+      - .:/app
+
+volumes:
+  test_db_data:
