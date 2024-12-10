@@ -3,12 +3,14 @@ from .rate_limiter import limiter, cors
 from .utils.responses import error_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
 db = SQLAlchemy()
+migrate = Migrate()
 
 def create_app():
     """Factory function to create a Flask app instance."""
@@ -19,6 +21,7 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
+    migrate.init_app(app, db)
     limiter.init_app(app)
     cors.init_app(app)
 
