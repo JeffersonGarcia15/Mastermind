@@ -58,4 +58,14 @@ To begin using the Mastermind Game, navigate through the sections below, which c
 
 ## Table of Contents
 
-1. [API Design](/docs/api-design/index.md)
+- [API Design](/docs/api-design/index.md)
+  - [Endpoint](/docs/api-design/start_game-endpoint.md): [/start](/docs/api-design/start_game-endpoint.md)
+  - [Endpoint](/docs/api-design/make_guess-endpoint.md): [/guess](/docs/api-design/make_guess-endpoint.md)
+- Testing
+  - Test Cases for get_hint
+  - Integration Tests for Game API
+- Architecture and Design Details
+  - Sequence Diagram
+  - Error Handling
+  - Future Improvements
+- Overview

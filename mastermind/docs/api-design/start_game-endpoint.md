@@ -6,7 +6,7 @@ title: Start Game Endpoint
 
 **Endpoint:** `/start/{difficulty}`
 
-**Method:** `POST`
+**Method:** `GET`
 
 ## Parameters
 
@@ -22,6 +22,12 @@ Host: 127.0.0.1:5000
 Content-Type: application/json
 
 {}
+```
+
+## Example cURL Request
+
+```bash
+curl -X GET http://127.0.0.1:5000/api/game/start/medium
 ```
 
 ## Response Example
@@ -66,10 +72,10 @@ Initializes a new game session with the specified difficulty level (`medium` or 
 
 The Start Game endpoint handles errors to maintain reliability:
 
-- **500 Internal Server Error:** Occurs if the `Random.org` API fails. In this case, the game sequence is generated locally to allow the user to start the game without interruption.
-
-- **400 Bad Request:** Returned if the `difficulty` parameter is missing or invalid.
-
-- **429 Too Many Requests:** Returned if the rate limit is exceeded.
+| **Error Code** | **Description**                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **500**        | **Internal Server Error** – Occurs if the Random.org API fails. In this case, the game sequence is generated locally to allow the user to start the game without interruption. |
+| **400**        | **Bad Request** – Returned if the `difficulty` parameter is missing or invalid.                                                                                                |
+| **429**        | **Too Many Requests** – Returned if the rate limit is exceeded.                                                                                                                |
 
 [← Back to API Overview](/docs/api-design/index.md)
