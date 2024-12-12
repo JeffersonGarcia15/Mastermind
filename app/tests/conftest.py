@@ -2,7 +2,9 @@
 # https://medium.com/@johnidouglasmarangon/how-to-setup-memory-database-test-with-pytest-and-sqlalchemy-ca2872a92708
 from sqlalchemy import create_engine
 from flask import Flask
+from flask_login import LoginManager, login_user
 from ..api.game_routes import game_routes
+from ..api.user_routes import auth_routes
 from app import db
 import pytest
 from dotenv import load_dotenv
@@ -62,12 +64,14 @@ def app(db_engine, tables):
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
     app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'super secret key'
 
     db.init_app(app)
     with app.app_context():
         db.create_all()
 
     app.register_blueprint(game_routes, url_prefix="/api/v2/game")
+    app.register_blueprint(auth_routes, url_prefix="/api/v2/auth")
 
     yield app
 
@@ -79,3 +83,15 @@ def app(db_engine, tables):
 @pytest.fixture
 def client(app):
     return app.test_client()
+
+# Centralize this in order to avoid creating this for every user test
+@pytest.fixture
+def flask_login_fixture(app):
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    return login_manager

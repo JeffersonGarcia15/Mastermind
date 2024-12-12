@@ -19,8 +19,6 @@ def test_start_game_medium(client, requests_mock, db_session):
         "difficulty": "medium",
     })
     json_data = response.get_json()
-    
-    print("THIS IS THE JSON_DATA", json_data, flush=True)
 
     assert response.status_code == 200
     # JSON = {data: [{}], error: None}
