@@ -18,8 +18,6 @@ ALLOWED_DIFFICULTIES = ["medium", "hard"]
 
 game_routes = Blueprint("game", __name__)
 
-game_states = {}
-
 def fetch_random_sequence(difficulty):
     """Fetches a random sequence from Random.org based on difficulty.
     Falls back to local generation if the API fails"""
