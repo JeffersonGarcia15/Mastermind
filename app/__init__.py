@@ -37,11 +37,13 @@ def create_app():
     # Added this because I wanted to follow the convention of /api/*
     from .api.game_routes import game_routes
     from .api.user_routes import auth_routes
+    from .api.history_routes import history_routes
     # We should have different versions of API if we're making any changes to them that may break clients. The versioning can be done according to semantic version (for example, 2.0.6 to indicate major version 2 and the sixth patch) like most apps do nowadays.
     # Credits to: https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
     # Since the way we return data will change, this will for sure break many clients.
     app.register_blueprint(game_routes, url_prefix="/api/v2/game")
     app.register_blueprint(auth_routes, url_prefix="/api/v2/auth")
+    app.register_blueprint(history_routes, url_prefix="/api/v2/history")
     
     # My tables were not being created unless I imported the models
     from .models.user import User
