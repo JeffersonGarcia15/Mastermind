@@ -14,7 +14,7 @@ The hint should be formatted as "xAyB", where x is the number of bulls and y is 
 
 from collections import Counter
 # Time: O(n)
-# Input + Auxiliary + Output Space: O(n) + O(1) + O(1) as the string won't be that large
+# Input + Auxiliary + Output Space: O(n) + O(1) + O(1) since secret and guess contains digits only, the max number of keys each dict will have is 10, digits 0-9. 
 def get_hint(secret: str, guess: str):
     frequencies_of_secret = Counter(secret) # Time: O(n)
     frequencies_of_guess = Counter(guess) # Time: O(n)
