@@ -2,8 +2,8 @@ from flask import Flask
 from .rate_limiter import limiter, cors
 from .utils.responses import error_response
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_login import LoginManager
 from dotenv import load_dotenv
 import os
 
@@ -11,6 +11,7 @@ load_dotenv()
 
 db = SQLAlchemy()
 migrate = Migrate()
+login = LoginManager()
 
 def create_app():
     """Factory function to create a Flask app instance."""
@@ -19,21 +20,33 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config['SECRET_KEY'] = 'super secret key'
+    app.config['SESSION_TYPE'] = 'filesystem'
 
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
     cors.init_app(app)
+    login.init_app(app)
 
     # Added this because I wanted to follow the convention of /api/*
     from .api.game_routes import game_routes
+    from .api.user_routes import auth_routes
     app.register_blueprint(game_routes, url_prefix="/api/game")
+    app.register_blueprint(auth_routes, url_prefix="/api/auth")
     
     # My tables were not being created unless I imported the models
     from .models.user import User
     from .models.game import Game, game_user_id_index
     from .models.attempt import Attempt, attempt_game_id_index
     from .models.match_record import MatchRecord, match_record_score_index
+    
+    # Error: Exception: Missing user_loader or request_loader. Refer to http://flask-login.readthedocs.io/#how-it-works for more info.
+    # Solution and credits to: https://medium.com/@zahmed333/solving-the-missing-user-loader-error-with-flask-login-daa1ab4efffb#:~:text=Exception%3A%20Missing%20user_loader%20or%20request_loader,registered%20with%20the%20LoginManager%20instance.
+    @login.user_loader
+    def load_user(user_id):
+        # Return the user object for the given user_id
+        return User.query.get(int(user_id))
     
     # As per the docs: For example, an error handler for HTTPException might be useful for turning the default HTML errors pages into JSON.
     # https://flask.palletsprojects.com/en/stable/errorhandling/
