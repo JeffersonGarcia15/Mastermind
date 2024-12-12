@@ -9,7 +9,7 @@ from app.utils.model_to_dict import model_to_dict
 BASE_URL_MEDIUM = "https://www.random.org/integers/?num=4&min=0&max=7&col=1&base=10&format=plain&rnd=new"
 BASE_URL_HARD = "https://www.random.org/integers/?num=6&min=0&max=7&col=1&base=10&format=plain&rnd=new"
 
-def test_start_game_medium(client, requests_mock, db_session):
+def test_start_game_medium(client, requests_mock, db_session, flask_login_fixture):
     """Test starting a medium difficulty game."""
     # The API returns text in one column with N numbers rather than a single line with all N numbers
     mock_data = "0\n1\n2\n3"
@@ -45,7 +45,7 @@ def test_start_game_medium(client, requests_mock, db_session):
     assert 10 - len(game.attempts) == 10
     assert game.match_record is None
     
-def test_start_game_hard(client, requests_mock, db_session):
+def test_start_game_hard(client, requests_mock, db_session, flask_login_fixture):
     """Test starting a hard difficulty game."""
     # The API returns text in one column with N numbers rather than a single line with all N numbers
     mock_data = "0\n1\n2\n3\n4\n5"
@@ -79,7 +79,7 @@ def test_start_game_hard(client, requests_mock, db_session):
     assert 10 - len(game.attempts) == 10
     assert game.match_record is None 
     
-def test_start_game_invalid_difficulty(client, requests_mock, db_session):
+def test_start_game_invalid_difficulty(client, requests_mock, db_session, flask_login_fixture):
     """Test starting a game with an invalid difficulty."""
     response = client.post("/api/v2/game/start", json={
         "difficulty": "easy",
@@ -90,7 +90,7 @@ def test_start_game_invalid_difficulty(client, requests_mock, db_session):
     assert json_data["data"] == None
     assert json_data["error"] == "Invalid difficulty level."
     
-def test_make_guess_win_medium(client, requests_mock, db_session):
+def test_make_guess_win_medium(client, requests_mock, db_session, flask_login_fixture):
     mock_data = "1\n2\n3\n4"
     requests_mock.get(BASE_URL_MEDIUM, text=mock_data)
 
@@ -128,7 +128,7 @@ def test_make_guess_win_medium(client, requests_mock, db_session):
     assert 10 - len(game.attempts) == 9
     assert game.match_record is not None
     
-def test_make_guess_win_hard(client, requests_mock, db_session):
+def test_make_guess_win_hard(client, requests_mock, db_session, flask_login_fixture):
     mock_data = "0\n1\n2\n3\n4\n5"
     requests_mock.get(BASE_URL_HARD, text=mock_data)
 
@@ -168,7 +168,7 @@ def test_make_guess_win_hard(client, requests_mock, db_session):
     assert 10 - len(game.attempts) == 9
     assert game.match_record is not None
     
-def test_make_guess_lose_medium(client, requests_mock, db_session):
+def test_make_guess_lose_medium(client, requests_mock, db_session, flask_login_fixture):
     mock_data = "1\n2\n3\n4"
     requests_mock.get(BASE_URL_MEDIUM, text=mock_data)
 
@@ -208,7 +208,7 @@ def test_make_guess_lose_medium(client, requests_mock, db_session):
     assert game.match_record is not None
     
         
-def test_make_guess_lose_hard(client, requests_mock, db_session):
+def test_make_guess_lose_hard(client, requests_mock, db_session, flask_login_fixture):
     mock_data = "0\n1\n2\n3\n4\n5"
     requests_mock.get(BASE_URL_HARD, text=mock_data)
 
@@ -247,7 +247,7 @@ def test_make_guess_lose_hard(client, requests_mock, db_session):
     assert 10 - len(game.attempts) == 0
     assert game.match_record is not None
     
-def test_make_guess_after_win(client, requests_mock, db_session):
+def test_make_guess_after_win(client, requests_mock, db_session, flask_login_fixture):
     """Test making a guess after the game has been won."""
     mock_data = "1\n2\n3\n4"
     requests_mock.get(BASE_URL_MEDIUM, text=mock_data)
@@ -280,7 +280,7 @@ def test_make_guess_after_win(client, requests_mock, db_session):
     
     assert status == "win"
 
-def test_make_guess_after_lose(client, requests_mock, db_session):
+def test_make_guess_after_lose(client, requests_mock, db_session, flask_login_fixture):
     """Test making a guess after the game has been lost."""
     mock_data = "1\n2\n3\n4"
     requests_mock.get(BASE_URL_MEDIUM, text=mock_data)
@@ -314,7 +314,7 @@ def test_make_guess_after_lose(client, requests_mock, db_session):
     
     assert status == "lose"
 
-def test_make_guess_invalid_game_id(client, requests_mock, db_session):
+def test_make_guess_invalid_game_id(client, requests_mock, db_session, flask_login_fixture):
     """Test making a guess with an invalid game_id."""
     response = client.post("/api/v2/game/guess", json={
         "game_id": "invalid-game-id",
@@ -325,7 +325,7 @@ def test_make_guess_invalid_game_id(client, requests_mock, db_session):
     assert response.status_code == 500
     assert json_data["data"] == None
 
-def test_make_guess_invalid_payload_missing_game_id(client, db_session):
+def test_make_guess_invalid_payload_missing_game_id(client, db_session, flask_login_fixture):
     """Test making a guess with missing game_id."""
     response = client.post("/api/v2/game/guess", json={
         "guess": "1234"
@@ -336,7 +336,7 @@ def test_make_guess_invalid_payload_missing_game_id(client, db_session):
     assert json_data["data"] == None
     assert json_data["error"] == "Invalid request format."
 
-def test_make_guess_invalid_payload_missing_guess(client, db_session):
+def test_make_guess_invalid_payload_missing_guess(client, db_session, flask_login_fixture):
     """Test making a guess with missing guess."""
     response = client.post("/api/v2/game/guess", json={
         "game_id": "some-game-id"
@@ -347,7 +347,7 @@ def test_make_guess_invalid_payload_missing_guess(client, db_session):
     assert json_data["data"] == None
     assert json_data["error"] == "Invalid request format."
 
-def test_make_guess_invalid_guess_length(client, requests_mock, db_session):
+def test_make_guess_invalid_guess_length(client, requests_mock, db_session, flask_login_fixture):
     """Test making a guess with invalid guess length."""
     mock_data = "1\n2\n3\n4\n"
     requests_mock.get(BASE_URL_MEDIUM, text=mock_data)
@@ -368,7 +368,7 @@ def test_make_guess_invalid_guess_length(client, requests_mock, db_session):
     assert json_data["data"] == None
     assert json_data["error"] == "Guess must be a 4-digit string."
 
-def test_make_guess_non_digit_guess(client, requests_mock, db_session):
+def test_make_guess_non_digit_guess(client, requests_mock, db_session, flask_login_fixture):
     """Test making a guess with non-digit characters."""
     mock_data = "1\n2\n3\n4\n"
     requests_mock.get(BASE_URL_MEDIUM, text=mock_data)
@@ -389,7 +389,7 @@ def test_make_guess_non_digit_guess(client, requests_mock, db_session):
     assert json_data["data"] == None
     assert json_data["error"] == "Guess must be a 4-digit string."
 
-def test_start_game_medium_fallback(client, requests_mock, db_session):
+def test_start_game_medium_fallback(client, requests_mock, db_session, flask_login_fixture):
     """Test starting a medium difficulty game when Random.org API fails, triggering fallback."""
     # Simulate API failure. This is to test the utils/generate_local_sequence function
     requests_mock.get(BASE_URL_MEDIUM, status_code=503)
@@ -428,7 +428,7 @@ def test_start_game_medium_fallback(client, requests_mock, db_session):
         assert 10 - len(game.attempts) == 10
         assert game.match_record is None
 
-def test_start_game_hard_fallback(client, requests_mock, db_session):
+def test_start_game_hard_fallback(client, requests_mock, db_session, flask_login_fixture):
     """Test starting a hard difficulty game when Random.org API fails, triggering fallback."""
     # Simulate API failure
     requests_mock.get(BASE_URL_HARD, status_code=503)
@@ -467,7 +467,7 @@ def test_start_game_hard_fallback(client, requests_mock, db_session):
 
 # Resource for mocking my endpoint which calls a function to generate it in case the third party API fails: 
 # https://stackoverflow.com/questions/53590758/how-to-mock-function-call-in-flask-restul-resource-method
-def test_make_guess_with_fallback_sequence_revealed_on_win(client, requests_mock, db_session):
+def test_make_guess_with_fallback_sequence_revealed_on_win(client, requests_mock, db_session, flask_login_fixture):
     """Test that when a game started with a fallback, the solution is revealed upon winning."""
     # Simulate API failure
     requests_mock.get(BASE_URL_MEDIUM, status_code=503)
@@ -508,7 +508,7 @@ def test_make_guess_with_fallback_sequence_revealed_on_win(client, requests_mock
         assert 10 - len(game.attempts) == 9
         assert game.match_record is not None
 
-def test_make_guess_with_fallback_sequence_revealed_on_lose(client, requests_mock, db_session):
+def test_make_guess_with_fallback_sequence_revealed_on_lose(client, requests_mock, db_session, flask_login_fixture):
     """Test that when a game started with a fallback, the solution is revealed upon losing."""
     # Simulate API failure
     requests_mock.get(BASE_URL_MEDIUM, status_code=503)
