@@ -64,7 +64,6 @@ To begin using the Mastermind Game, navigate through the sections below, which c
 - [Testing](/docs/tests/index.md)
   - [Test Cases for `get_hint`](/docs/tests/get_hint-test.md)
   - [Integration Tests for `Mastermind API`](/docs/tests/api-tests.md)
-- Architecture and Design Details
-  - Sequence Diagram
-  - Error Handling
-  - Future Improvements
+- [Architecture and Design Details](/docs/mastermind-docs/index.md)
+  - [Mastermind Design](/docs/mastermind-docs/mastermind-design.md)
+  - [Future Improvements](/docs/mastermind-docs/future-improvements.md)
