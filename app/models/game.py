@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Index
 
 class Difficulty(enum.Enum):
-    easy = "easy"
     medium = "medium"
     hard = "hard"
 
