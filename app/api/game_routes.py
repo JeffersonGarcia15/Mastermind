@@ -47,9 +47,15 @@ def fetch_random_sequence(difficulty):
 
 # 5 games per minute per IP address
 # https://medium.com/analytics-vidhya/how-to-rate-limit-routes-in-flask-61c6c791961b#:~:text=In%20flask%20there%20is%20a,track%20of%20their%20IP%20address.
-@game_routes.route("/start/<string:difficulty>", methods=["GET"])
+@game_routes.route("/start", methods=["POST"])
 @limiter.limit("5 per minute")
-def start_game(difficulty):
+def start_game():
+    request_json = request.get_json()
+    
+    if not request_json or "difficulty" not in request_json:
+        return error_response("Invalid request format.", 400)
+    
+    difficulty = request_json["difficulty"]
     sequence, fallback_used, err = fetch_random_sequence(difficulty)
     
     if err and not fallback_used:

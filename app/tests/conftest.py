@@ -67,7 +67,7 @@ def app(db_engine, tables):
     with app.app_context():
         db.create_all()
 
-    app.register_blueprint(game_routes, url_prefix="/api/game")
+    app.register_blueprint(game_routes, url_prefix="/api/v2/game")
 
     yield app
 

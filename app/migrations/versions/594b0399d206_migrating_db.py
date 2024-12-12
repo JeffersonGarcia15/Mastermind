@@ -1,8 +1,8 @@
-"""Recreate db schema after reset.
+"""Migrating db
 
-Revision ID: 5288835a6caa
+Revision ID: 594b0399d206
 Revises: 
-Create Date: 2024-12-09 20:05:53.972177
+Create Date: 2024-12-12 17:55:39.750472
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5288835a6caa'
+revision = '594b0399d206'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,12 +22,13 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=True),
     sa.Column('created_at', sa.TIMESTAMP(), nullable=True),
+    sa.Column('password_hash', sa.String(length=255), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('games',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('difficulty', sa.Enum('easy', 'medium', 'hard', name='difficulty'), nullable=False),
+    sa.Column('difficulty', sa.Enum('medium', 'hard', name='difficulty'), nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), nullable=True),
     sa.Column('solution', sa.String(length=10), nullable=False),
     sa.Column('fallback_used', sa.Boolean(), nullable=False),
