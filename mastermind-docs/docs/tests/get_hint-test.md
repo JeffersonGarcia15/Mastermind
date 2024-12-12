@@ -1,7 +1,7 @@
 ---
 id: get-hint-unit-tests
-title: Unit Tests for `get_hint` Function
-sidebar_label: `get_hint` Unit Tests
+title: Unit Tests for get_hint Function
+sidebar_label: Unit Tests
 ---
 
 # Unit Tests for `get_hint` Function
