@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 # https://flask-limiter.readthedocs.io/en/stable/
 import requests
-import uuid
+from flask_login import current_user
 from ..rate_limiter import limiter
 from ..utils.responses import success_response, error_response
 from ..utils.generate_local_sequence import generate_local_sequence
@@ -61,10 +61,13 @@ def start_game():
     if err and not fallback_used:
         return error_response(err, 400)
     
+    # Check if there is a user logged_in and if that's the case then we can store that in the Game table
+    user_id = current_user.id if current_user.is_authenticated else None
+    
     # https://docs.sqlalchemy.org/en/20/orm/quickstart.html#create-objects-and-persist 
     
     game = Game(
-        user_id=None,
+        user_id=user_id,
         difficulty=Difficulty(difficulty),
         solution=sequence,
         fallback_used=fallback_used
