@@ -99,10 +99,10 @@ def create_app():
         
         # Error: sqlalchemy.exc.ArgumentError: Textual SQL expression 'TRUNCATE users CASCADE;' should be explicitly declared as text('TRUNCATE users CASCADE;')
         # Credits to: https://stackoverflow.com/questions/54483184/sqlalchemy-warning-textual-column-expression-should-be-explicitly-declared
-        db.session.execute(text("TRUNCATE users CASCADE;"))
-        db.session.execute(text("TRUNCATE games CASCADE;"))
-        db.session.execute(text("TRUNCATE attempts CASCADE;"))
-        db.session.execute(text("TRUNCATE match_records CASCADE;"))
+        db.session.execute(text("TRUNCATE users RESTART IDENTITY CASCADE;"))
+        db.session.execute(text("TRUNCATE games RESTART IDENTITY CASCADE;"))
+        db.session.execute(text("TRUNCATE attempts RESTART IDENTITY CASCADE;"))
+        db.session.execute(text("TRUNCATE match_records RESTART IDENTITY CASCADE;"))
         db.session.commit()
         click.echo("Database tables truncated successfully.")
 

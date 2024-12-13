@@ -46,3 +46,32 @@ def leaderboard_score():
     return success_response(data)
 
 # /games: shows top 10 users by number of games played
+# GOAL: Show players with the most number of games played
+# User table has the name
+# Games has a user_id that we can use to GROUP BY based on the number of games associated with a user_id
+"""
+SELECT users.name, COUNT(games) as total_games
+FROM games
+INNER JOIN users ON users.id = games.user_id
+GROUP BY users.name
+ORDER BY COUNT(games) DESC
+LIMIT 10
+"""
+@leaderboard_routes.route("/games", methods=["GET"])
+def leaderboard_games():
+    results = db.session.query(
+       User.name,
+       functions.count(Game.id).label("total_games") 
+    ).join(User, User.id == Game.user_id)\
+     .group_by(User.name)\
+     .order_by(desc("total_games"))\
+     .limit(10).all()
+     
+    data = []
+    for r in results:
+        data.append({
+            "name": r.name,
+            "total_games": r.total_games
+        })
+        
+    return success_response(data)
