@@ -145,7 +145,7 @@ def make_guess():
             match_record = MatchRecord(
                 game_id = game.id,
                 result = Result.win,
-                score = attempts_left
+                score = attempts_left + 5 if game.difficulty.value == "hard" else attempts_left
             )
             db.session.add(match_record)
             db.session.commit()
