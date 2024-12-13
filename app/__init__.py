@@ -1,3 +1,4 @@
+import redis
 from flask import Flask
 from .rate_limiter import limiter, cors
 from .utils.responses import error_response
@@ -17,6 +18,9 @@ load_dotenv()
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
+# Credits to: https://pypi.org/project/redis/
+# The docs mention localhost but given that redis is on Docker we need to reference that service
+r = redis.Redis(host="redis", port=6379, db=0)
 
 
 def create_app():
@@ -26,8 +30,8 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = "super secret key"
-    app.config["SESSION_TYPE"] = "filesystem"
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") 
+    app.config["SESSION_TYPE"] = os.getenv("SESSION_TYPE")
 
     db.init_app(app)
     migrate.init_app(app, db)
