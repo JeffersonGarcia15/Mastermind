@@ -7,27 +7,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.9'
 
       - name: Install dependencies for linting
-        run: pip install -r requirements.txt
+        run: pip install -r app/requirements.txt
 
       - name: Lint code
         run: flake8 app/
 
       - name: Build and start test environment
+      # Specifying directory because of this error under GitHub Actions: Run pip install -r requirements.txt 
+      # ERROR: Could not open requirements file: [Errno 2] No such file or directory: 'requirements.txt'
+      # Error: Process completed with exit code 1.
+        working-directory: app
         run: docker-compose -f docker-compose-test.yml -p mastermind_test up -d --build
 
       - name: Wait for services
         run: sleep 10
 
       - name: Run migrations
+        working-directory: app
         run: docker-compose -f docker-compose-test.yml -p mastermind_test exec test_app flask db upgrade
 
       - name: Run tests inside docker
+        working-directory: app
         run: docker-compose -f docker-compose-test.yml -p mastermind_test exec test_app pytest tests -s
 
+      - name: Tear down
+        working-directory: app
+        run: docker-compose -f docker-compose-test.yml -p mastermind_test down
