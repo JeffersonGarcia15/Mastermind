@@ -4,8 +4,7 @@ from flask_cors import CORS
 
 # https://flask-limiter.readthedocs.io/en/stable/configuration.html#ratelimit-string
 limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    key_func=get_remote_address, default_limits=["200 per day", "50 per hour"]
 )
 
 cors = CORS()

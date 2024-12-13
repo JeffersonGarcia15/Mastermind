@@ -21,23 +21,26 @@ from ..models.match_record import MatchRecord, match_record_score_index
 
 load_dotenv(".env.test")
 
+
 @pytest.fixture(scope="session")
 def db_engine():
     """yields a SQLAlchemy engine, lasts for the duration of the entire test run"""
     DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
     engine = create_engine(DATABASE_URI)
-    
+
     yield engine
-    
+
     engine.dispose()
-    
-@pytest.fixture(scope='session')
+
+
+@pytest.fixture(scope="session")
 def tables(db_engine):
     # beforeAll equivalent in Jest
     db.metadata.create_all(db_engine)
     yield
     # afterAll equivalent in Jest
     db.metadata.drop_all(db_engine)
+
 
 @pytest.fixture
 def db_session(db_engine, tables):
@@ -50,21 +53,22 @@ def db_session(db_engine, tables):
     # https://stackoverflow.com/questions/21078696/why-is-my-scoped-session-raising-an-attributeerror-session-object-has-no-attr
     # db.session = session -> AttributeError: 'Session' object has no attribute 'remove'
     # https://docs.sqlalchemy.org/en/20/orm/contextual.html
-    
+
     db.session = session
-    
+
     yield session
 
     session.close()
     transaction.rollback()
     connection.close()
 
+
 @pytest.fixture
 def app(db_engine, tables):
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
-    app.config['TESTING'] = True
-    app.config['SECRET_KEY'] = 'super secret key'
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
+    app.config["TESTING"] = True
+    app.config["SECRET_KEY"] = "super secret key"
 
     db.init_app(app)
     with app.app_context():
@@ -80,9 +84,11 @@ def app(db_engine, tables):
         db.session.remove()
         db.drop_all()
 
+
 @pytest.fixture
 def client(app):
     return app.test_client()
+
 
 # Centralize this in order to avoid creating this for every user test
 @pytest.fixture

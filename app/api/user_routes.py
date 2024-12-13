@@ -4,9 +4,10 @@ from app.models.user import User
 from app import db
 from app.utils.responses import success_response, error_response
 
-auth_routes = Blueprint('auth', __name__)
+auth_routes = Blueprint("auth", __name__)
 
-@auth_routes.route('/')
+
+@auth_routes.route("/")
 def authenticate():
     """
     Checks if a user is currently authenticated.
@@ -17,7 +18,7 @@ def authenticate():
     return error_response("Unauthorized", 401)
 
 
-@auth_routes.route('/login', methods=['POST'])
+@auth_routes.route("/login", methods=["POST"])
 def login():
     """
     Logs a user in using username and password.
@@ -38,7 +39,7 @@ def login():
     return success_response(user.to_dict(), 200)
 
 
-@auth_routes.route('/logout', methods=['POST'])
+@auth_routes.route("/logout", methods=["POST"])
 def logout():
     """
     Logs a user out.
@@ -49,7 +50,7 @@ def logout():
     return success_response({"message": "User logged out"}, 200)
 
 
-@auth_routes.route('/signup', methods=['POST'])
+@auth_routes.route("/signup", methods=["POST"])
 def sign_up():
     """
     Creates a new user and logs them in.

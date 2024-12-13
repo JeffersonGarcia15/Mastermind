@@ -1,0 +1,19 @@
+; https://flake8.pycqa.org/en/latest/user/configuration.html
+[flake8]
+# Specify the maximum allowed line length
+max-line-length = 88
+ignore = E203, E266, E501, W503
+# NOTE: Do investigate why removing the comments after lib/, and migrations/, make the config actually ignore those files
+# and removing them, the comments, makes it as if I am not telling it to ignore!
+exclude =
+    lib/,                # Exclude the lib directory, which is causing many files to be scanned, files that don't belong to me.
+    lib/python3.9/site-packages/,
+    venv/,               
+    env/,                
+    migrations/,        # Exclude the migrations directory  
+    __pycache__/,        
+    */tests/*,           
+    .git/,               
+    .github/,            
+    */static/*,          
+    */templates/*        
