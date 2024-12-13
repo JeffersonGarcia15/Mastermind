@@ -22,6 +22,7 @@ login = LoginManager()
 # The docs mention localhost but given that redis is on Docker we need to reference that service
 r = redis.Redis(host="redis", port=6379, db=0)
 
+
 def create_app():
     """Factory function to create a Flask app instance."""
     # https://flask.palletsprojects.com/en/stable/tutorial/factory/
@@ -29,7 +30,7 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") 
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["SESSION_TYPE"] = os.getenv("SESSION_TYPE")
 
     db.init_app(app)
@@ -43,6 +44,7 @@ def create_app():
     from .api.user_routes import auth_routes
     from .api.history_routes import history_routes
     from .api.leaderboard_routes import leaderboard_routes
+
     # We should have different versions of API if we're making any changes to them that may break clients. The versioning can be done according to semantic version (for example, 2.0.6 to indicate major version 2 and the sixth patch) like most apps do nowadays.
     # Credits to: https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
     # Since the way we return data will change, this will for sure break many clients.
@@ -50,30 +52,30 @@ def create_app():
     app.register_blueprint(auth_routes, url_prefix="/api/v2/auth")
     app.register_blueprint(history_routes, url_prefix="/api/v2/history")
     app.register_blueprint(leaderboard_routes, url_prefix="/api/v2/leaderboard")
-    
+
     # My tables were not being created unless I imported the models
     from .models.user import User
-    from .models.game import Game, Difficulty ,game_user_id_index
+    from .models.game import Game, Difficulty, game_user_id_index
     from .models.attempt import Attempt, attempt_game_id_index
     from .models.match_record import MatchRecord, Result, match_record_score_index
-    
+
     # Error: Exception: Missing user_loader or request_loader. Refer to http://flask-login.readthedocs.io/#how-it-works for more info.
     # Solution and credits to: https://medium.com/@zahmed333/solving-the-missing-user-loader-error-with-flask-login-daa1ab4efffb#:~:text=Exception%3A%20Missing%20user_loader%20or%20request_loader,registered%20with%20the%20LoginManager%20instance.
     @login.user_loader
     def load_user(user_id):
         # Return the user object for the given user_id
         return User.query.get(int(user_id))
-    
+
     # As per the docs: For example, an error handler for HTTPException might be useful for turning the default HTML errors pages into JSON.
     # https://flask.palletsprojects.com/en/stable/errorhandling/
     @app.errorhandler(429)
     def ratelimit_handler(error):
-        return error_response("Rate limit exceeded: 5 per minute.", 429)    
+        return error_response("Rate limit exceeded: 5 per minute.", 429)
 
     @app.cli.command("create-db")
     def create_db():
         with app.app_context():
-            # As per the docs: After all models and tables are defined, call SQLAlchemy.create_all() to create the table schema in the database. 
+            # As per the docs: After all models and tables are defined, call SQLAlchemy.create_all() to create the table schema in the database.
             db.create_all()
             print("Database created successfully!")
 
@@ -84,23 +86,25 @@ def create_app():
     def create_indexes():
         with app.app_context():
             engine = db.get_engine(app=app)
-            
+
             # Create the indexes
             attempt_game_id_index.create(bind=engine)
             game_user_id_index.create(bind=engine)
             match_record_score_index.create(bind=engine)
 
             print("LOG: Indexes created successfully!")
-    
+
     @app.cli.command("seed")
-    @click.option("--games-per-user", default=None, help="Optional override for games per user.")
+    @click.option(
+        "--games-per-user", default=None, help="Optional override for games per user."
+    )
     def seed(games_per_user):
         """
         Seed the database with sample data.
         """
         # Clear existing data if needed
         # Reference: https://github.com/JeffersonGarcia15/Astrogram/blob/main/app/seeds/users.py
-        
+
         # Error: sqlalchemy.exc.ArgumentError: Textual SQL expression 'TRUNCATE users CASCADE;' should be explicitly declared as text('TRUNCATE users CASCADE;')
         # Credits to: https://stackoverflow.com/questions/54483184/sqlalchemy-warning-textual-column-expression-should-be-explicitly-declared
         db.session.execute(text("TRUNCATE users RESTART IDENTITY CASCADE;"))
@@ -127,7 +131,9 @@ def create_app():
             num_games = user.id if not games_per_user else games_per_user
             for g in range(num_games):
                 difficulty = random.choice(difficulties)
-                random_sequence = generate_local_sequence(4 if difficulty.value == "medium" else 6)
+                random_sequence = generate_local_sequence(
+                    4 if difficulty.value == "medium" else 6
+                )
                 data = random_sequence.split()
                 solution = "".join(data)
                 game = Game(
@@ -135,7 +141,7 @@ def create_app():
                     difficulty=difficulty,
                     solution=solution,
                     fallback_used=bool(random.getrandbits(1)),
-                    created_at=datetime.datetime.now()
+                    created_at=datetime.datetime.now(),
                 )
                 db.session.add(game)
                 db.session.commit()
@@ -143,32 +149,40 @@ def create_app():
                 # Random number of attempts [0, 10]
                 attempts_count = random.randint(0, 10)
                 correct_positions = random.randint(0, len(solution))
-                correct_numbers_only = random.randint(0, len(solution) - correct_positions)
+                correct_numbers_only = random.randint(
+                    0, len(solution) - correct_positions
+                )
 
                 # Create attempts
                 for a_idx in range(attempts_count):
                     attempt = Attempt(
                         game_id=game.id,
-                        guess="".join(str(random.randint(0, 7)) for _ in range(len(solution))),
-                        hints=f"{correct_positions} correct positions, {correct_numbers_only} correct numbers"
+                        guess="".join(
+                            str(random.randint(0, 7)) for _ in range(len(solution))
+                        ),
+                        hints=f"{correct_positions} correct positions, {correct_numbers_only} correct numbers",
                     )
                     db.session.add(attempt)
 
                 # Determine if the game ended (if attempts_count reached 10 or all correct)
                 if correct_positions == len(solution) or attempts_count == 10:
                     # Game ended, determine result (win if correct_positions == len(solution))
-                    result = Result.win if correct_positions == len(solution) else Result.lose
+                    result = (
+                        Result.win
+                        if correct_positions == len(solution)
+                        else Result.lose
+                    )
                     score = 10 - attempts_count
                     match_record = MatchRecord(
                         game_id=game.id,
                         result=result,
                         score=score + 5 if difficulty.value == "hard" else score,
-                        time_taken=datetime.timedelta(seconds=random.randint(10,300))
+                        time_taken=datetime.timedelta(seconds=random.randint(10, 300)),
                     )
                     db.session.add(match_record)
 
                 db.session.commit()
 
         print("Seeding completed successfully!")
-    
+
     return app

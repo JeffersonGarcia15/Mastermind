@@ -1,3 +1,5 @@
+from collections import Counter
+
 "NOTE: This is inspired by the bulls and cows game!"
 
 """
@@ -12,16 +14,16 @@ Given the secret number 'secret' and your friend's guess 'guess', return the hin
 The hint should be formatted as "xAyB", where x is the number of bulls and y is the number of cows. Note that both secret and guess may contain duplicate digits.
 """
 
-from collections import Counter
+
 # Time: O(n)
-# Input + Auxiliary + Output Space: O(n) + O(1) + O(1) since secret and guess contains digits only, the max number of keys each dict will have is 10, digits 0-9. 
+# Input + Auxiliary + Output Space: O(n) + O(1) + O(1) since secret and guess contains digits only, the max number of keys each dict will have is 10, digits 0-9.
 def get_hint(secret: str, guess: str):
-    frequencies_of_secret = Counter(secret) # Time: O(n)
-    frequencies_of_guess = Counter(guess) # Time: O(n)
+    frequencies_of_secret = Counter(secret)  # Time: O(n)
+    frequencies_of_guess = Counter(guess)  # Time: O(n)
     bulls = 0
     cows = 0
 
-    for i in range(len(secret)): # Time: O(n)
+    for i in range(len(secret)):  # Time: O(n)
         # Are the values the same at this index? If so bull += 1
         if secret[i] == guess[i]:
             bulls += 1
@@ -34,7 +36,7 @@ def get_hint(secret: str, guess: str):
             if frequencies_of_guess[secret[i]] <= 0:
                 del frequencies_of_guess[secret[i]]
     # Look for cows!
-    for key in frequencies_of_secret: # Time: O(n)
+    for key in frequencies_of_secret:  # Time: O(n)
         if key in frequencies_of_guess:
             cows += min(frequencies_of_secret[key], frequencies_of_guess[key])
 
