@@ -1,0 +1,33 @@
+# Credits to: https://stackoverflow.com/questions/64364989/github-actions-how-to-run-test-inside-container
+name: mastermind-ci
+on: [push, pull_request]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies for linting
+        run: pip install -r requirements.txt
+
+      - name: Lint code
+        run: flake8 app/
+
+      - name: Build and start test environment
+        run: docker-compose -f docker-compose-test.yml -p mastermind_test up -d --build
+
+      - name: Wait for services
+        run: sleep 10
+
+      - name: Run migrations
+        run: docker-compose -f docker-compose-test.yml -p mastermind_test exec test_app flask db upgrade
+
+      - name: Run tests inside docker
+        run: docker-compose -f docker-compose-test.yml -p mastermind_test exec test_app pytest tests -s
+
