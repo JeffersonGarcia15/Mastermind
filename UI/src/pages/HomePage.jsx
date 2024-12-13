@@ -1,7 +1,3 @@
 export function HomePage() {
-    return (
-        <div>
-
-        </div>
-    );
+    return <h1>Welcome to Mastermind</h1>;
 }

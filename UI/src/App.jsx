@@ -20,7 +20,6 @@ export default function App() {
     checkAuth();
 
   }, []);
-  console.log("USER", user);
   return (
     <div>
       <nav>
@@ -28,7 +27,7 @@ export default function App() {
       </nav>
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/game/:id" element={<GameDetailsPage />} />
+        <Route path="/game/:gameId" element={<GameDetailsPage />} />
         <Route path="/game" element={<GamePage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/" element={<HomePage />} />

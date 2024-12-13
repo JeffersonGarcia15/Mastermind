@@ -34,3 +34,36 @@ export function logout() {
 export function authenticate() {
   return request("/auth/");
 }
+
+// Game
+export function createGame(difficulty) {
+  return request("/game/start", {
+    method: "POST",
+    body: JSON.stringify({ difficulty }),
+  });
+}
+
+export function makeGuess(gameId, guess) {
+  return request("/game/guess", {
+    method: "POST",
+    body: JSON.stringify({ game_id: gameId, guess }),
+  });
+}
+
+// History & Details
+export function getHistory() {
+  return request("/history/all_games");
+}
+
+export function getGameDetails(gameId) {
+  return request(`/history/game_details/${gameId}`);
+}
+
+// Leaderboard
+export function getLeaderboardByScore() {
+  return request("/leaderboard/score");
+}
+
+export function getLeaderboardByGames() {
+  return request("/leaderboard/games");
+}
