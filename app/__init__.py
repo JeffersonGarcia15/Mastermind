@@ -158,7 +158,7 @@ def create_app():
                     match_record = MatchRecord(
                         game_id=game.id,
                         result=result,
-                        score=score,
+                        score=score + 5 if difficulty.value == "hard" else score,
                         time_taken=datetime.timedelta(seconds=random.randint(10,300))
                     )
                     db.session.add(match_record)

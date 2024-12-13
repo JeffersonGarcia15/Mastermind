@@ -162,7 +162,7 @@ def test_make_guess_win_hard(client, requests_mock, db_session, flask_login_fixt
     assert game is not None
     assert game.solution == json_data["data"]["solution"]
     assert attempts_left == 9
-    assert score == 9
+    assert score == 9 + 5
     # While it might seem redundant that I am testing this when I am already fetching the MatchRecord/Attempt data
     # This is helpful to make sure that the relationship between the Game and Attempts/MatchRecord model is working
     assert 10 - len(game.attempts) == 9
