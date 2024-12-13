@@ -1,5 +1,5 @@
 from flask import Blueprint
-from app import db
+from app import db, r
 from app.models.user import User
 from app.models.game import Game
 from app.models.match_record import MatchRecord
@@ -27,22 +27,39 @@ LIMIT 10;
 """
 @leaderboard_routes.route('/score', methods=['GET'])
 def leaderboard_score():
-    results = db.session.query(
-        User.name,
-        functions.sum(MatchRecord.score).label("total_score")
-    ).join(Game, Game.user_id == User.id)\
-     .join(MatchRecord, MatchRecord.game_id == Game.id)\
-     .group_by(User.name)\
-     .order_by(desc("total_score"))\
-     .limit(10).all()
+    # Checking the redis cache first
+    top_10 = r.zrevrange("leaderboard_scores", 0, 9, withscores=True)
+    if len(top_10) == 0:
+        results = db.session.query(
+            User.name,
+            functions.sum(MatchRecord.score).label("total_score")
+        ).join(Game, Game.user_id == User.id)\
+        .join(MatchRecord, MatchRecord.game_id == Game.id)\
+        .group_by(User.name)\
+        .order_by(desc("total_score"))\
+        .limit(10).all()
 
-    data = []
-    for r in results:
-        data.append({
-            "name": r.name,
-            "total_score": r.total_score
-        })
-
+        data = []
+        for r_ in results:
+            data.append({
+                "name": r_.name,
+                "total_score": r_.total_score
+            })
+            
+        for d in data:
+            r.zadd("leaderboard_scores", {d["name"]: d["total_score"]})
+        # 5 minutes might be too generous when it comes to deleting the keys to force an update in the cache
+        # and avoid the cache becoming stale and becoming out of sync with the db.
+        r.expire("leaderboard_scores", 300)
+    else:
+        data = []
+        for name, score in top_10:
+            # error: TypeError: Object of type bytes is not JSON serializable
+            # solution: https://stackoverflow.com/questions/44682018/typeerror-object-of-type-bytes-is-not-json-serializable
+            data.append({
+                "name": name.decode("utf-8"),
+                "total_score": int(score)
+            })
     return success_response(data)
 
 # /games: shows top 10 users by number of games played
@@ -59,19 +76,32 @@ LIMIT 10
 """
 @leaderboard_routes.route("/games", methods=["GET"])
 def leaderboard_games():
-    results = db.session.query(
-       User.name,
-       functions.count(Game.id).label("total_games") 
-    ).join(User, User.id == Game.user_id)\
-     .group_by(User.name)\
-     .order_by(desc("total_games"))\
-     .limit(10).all()
-     
-    data = []
-    for r in results:
-        data.append({
-            "name": r.name,
-            "total_games": r.total_games
-        })
+    top_10 = r.zrevrange("leaderboard_games", 0, 9, withscores=True)
+    if len(top_10) == 0:
+        results = db.session.query(
+        User.name,
+        functions.count(Game.id).label("total_games") 
+        ).join(User, User.id == Game.user_id)\
+        .group_by(User.name)\
+        .order_by(desc("total_games"))\
+        .limit(10).all()
         
+        data = []
+        for r_ in results:
+            data.append({
+                "name": r_.name,
+                "total_games": r_.total_games
+            })
+        
+        for d in data:
+            r.zadd("leaderboard_games", {d["name"]: d["total_games"]})
+        r.expire("leaderboard_games", 300)  
+    else:
+        data = []
+        for name, score in top_10:
+            data.append({
+                "name": name.decode("utf-8"),
+                "total_score": int(score)
+            })
+            
     return success_response(data)
