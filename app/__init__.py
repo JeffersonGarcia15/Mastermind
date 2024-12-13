@@ -8,6 +8,7 @@ from sqlalchemy.sql import text
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
+from datetime import timedelta
 import os
 import click
 import random
@@ -31,12 +32,23 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-    app.config["SESSION_TYPE"] = os.getenv("SESSION_TYPE")
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+
+    # app.config["SESSION_TYPE"] = os.getenv("SESSION_TYPE")
+
+    # Solving CORS issue: https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
+    # Credits To : Pedro Orozco
 
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
-    cors.init_app(app)
+    cors.init_app(
+        app,
+        supports_credentials=True,
+        resources={r"/api/v2/*": {"origins": "http://localhost:5173"}},
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["Content-Type", "Authorization"],
+    )
     login.init_app(app)
 
     # Added this because I wanted to follow the convention of /api/*

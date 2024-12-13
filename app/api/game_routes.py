@@ -108,10 +108,6 @@ def make_guess():
         game_id = request_json["game_id"]
         guess = request_json["guess"]
 
-        # NOTE docs for print statements not showing on flask and docker container
-        # https://stackoverflow.com/questions/60773195/docker-compose-flask-app-not-printing-output-from-print
-        # https://stackoverflow.com/questions/44405708/flask-doesnt-print-to-console
-        # https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.first
         game = Game.query.filter_by(id=game_id).first()
         if not game:
             return error_response("Game ID not found.", 404)
@@ -131,10 +127,14 @@ def make_guess():
         ):
             return error_response(f"Guess must be a {len(sequence)}-digit string.", 400)
 
-        attempts_left = 10 - Attempt.query.filter_by(game_id=game_id).count()
+        attempts_made = Attempt.query.filter_by(game_id=game_id).count()
 
+        # Changing the logic so that guessing in the last attempt does not give you 0 points
+        if attempts_made >= 10:
+            return error_response("No attempts left. Game over.", 400)
+
+        # Proceed to add the new attempt
         hints = get_hint(sequence, guess)
-
         correct_positions, correct_numbers_only = hints
 
         attempt = Attempt(
@@ -145,34 +145,36 @@ def make_guess():
         db.session.add(attempt)
         db.session.commit()
 
-        attempts_left -= 1
+        attempts_made += 1
+        attempts_left = 10 - attempts_made
 
         response_data = {
             "correct_positions": correct_positions,
             "correct_numbers_only": correct_numbers_only,
             "attempts_left": attempts_left,
-            "status": "ongoing",  # could be "win", "lose", or "ongoing"
+            "status": "ongoing",
         }
 
         # # Check if all of the positions and numbers are correct!
         if correct_positions == len(sequence):
             response_data["status"] = "win"
             response_data["solution"] = sequence
+            # Ensure at least 1 point for medium difficulty
+            if game.difficulty.value == "hard":
+                score = attempts_left + 5
+            else:
+                score = max(attempts_left, 1)
             match_record = MatchRecord(
                 game_id=game.id,
                 result=Result.win,
-                score=(
-                    attempts_left + 5
-                    if game.difficulty.value == "hard"
-                    else attempts_left
-                ),
+                score=score,
             )
             db.session.add(match_record)
             db.session.commit()
             return success_response(response_data)
 
         # If not all but guess attempts_left is 0 then you lose!
-        if correct_positions != len(sequence) and attempts_left == 0:
+        if attempts_left == 0:
             response_data["status"] = "lose"
             response_data["solution"] = sequence
             match_record = MatchRecord(game_id=game.id, result=Result.lose, score=0)

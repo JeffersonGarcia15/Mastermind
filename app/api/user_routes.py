@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, session
 from flask_login import current_user, login_user, logout_user
 from app.models.user import User
 from app import db
@@ -36,6 +36,7 @@ def login():
         return error_response("Invalid username or password.", 401)
 
     login_user(user)
+    session.permanent = True
     return success_response(user.to_dict(), 200)
 
 
@@ -76,4 +77,5 @@ def sign_up():
     db.session.commit()
 
     login_user(new_user)
+    session.permanent = True
     return success_response(new_user.to_dict(), 201)
