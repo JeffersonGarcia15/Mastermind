@@ -38,12 +38,14 @@ def create_app():
     from .api.game_routes import game_routes
     from .api.user_routes import auth_routes
     from .api.history_routes import history_routes
+    from .api.leaderboard_routes import leaderboard_routes
     # We should have different versions of API if we're making any changes to them that may break clients. The versioning can be done according to semantic version (for example, 2.0.6 to indicate major version 2 and the sixth patch) like most apps do nowadays.
     # Credits to: https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
     # Since the way we return data will change, this will for sure break many clients.
     app.register_blueprint(game_routes, url_prefix="/api/v2/game")
     app.register_blueprint(auth_routes, url_prefix="/api/v2/auth")
     app.register_blueprint(history_routes, url_prefix="/api/v2/history")
+    app.register_blueprint(leaderboard_routes, url_prefix="/api/v2/leaderboard")
     
     # My tables were not being created unless I imported the models
     from .models.user import User
@@ -97,10 +99,10 @@ def create_app():
         
         # Error: sqlalchemy.exc.ArgumentError: Textual SQL expression 'TRUNCATE users CASCADE;' should be explicitly declared as text('TRUNCATE users CASCADE;')
         # Credits to: https://stackoverflow.com/questions/54483184/sqlalchemy-warning-textual-column-expression-should-be-explicitly-declared
-        db.session.execute(text("TRUNCATE users CASCADE;"))
-        db.session.execute(text("TRUNCATE games CASCADE;"))
-        db.session.execute(text("TRUNCATE attempts CASCADE;"))
-        db.session.execute(text("TRUNCATE match_records CASCADE;"))
+        db.session.execute(text("TRUNCATE users RESTART IDENTITY CASCADE;"))
+        db.session.execute(text("TRUNCATE games RESTART IDENTITY CASCADE;"))
+        db.session.execute(text("TRUNCATE attempts RESTART IDENTITY CASCADE;"))
+        db.session.execute(text("TRUNCATE match_records RESTART IDENTITY CASCADE;"))
         db.session.commit()
         click.echo("Database tables truncated successfully.")
 
