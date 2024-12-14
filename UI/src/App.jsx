@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, Link } from "react-router";
+import { Routes, Route, Link, useNavigate } from "react-router";
 import { AuthPage, GameDetailsPage, GamePage, HistoryPage, HomePage, LeaderboardPage } from "./pages";
-import { authenticate } from "./utils/api";
+import { authenticate, logout } from "./utils/api";
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function checkAuth() {
@@ -20,16 +21,34 @@ export default function App() {
     checkAuth();
 
   }, []);
+
+  async function handleLogout() {
+    await logout();
+    navigate("/");
+    setUser(null);
+    window.location.reload();
+  }
+
   return (
     <div>
       <nav>
-        <Link to="/">Home</Link> | <Link to="/auth">Login/Signup</Link> | <Link to="/game">Game</Link> | <Link to="/history">History</Link> | <Link to="/leaderboard">Leaderboard</Link>
+        <Link to="/">Home</Link> |
+        {user ? (
+          <>
+            <button onClick={handleLogout} style={{ margin: "0 5px" }}>Logout</button>
+            <Link to="/game">Game</Link> | {user && <Link to="/history">History</Link>} | <Link to="/leaderboard">Leaderboard</Link>
+          </>
+        ) : (
+          <>
+            <Link to="/auth">Login/Signup</Link> | <Link to="/game">Game</Link> | <Link to="/leaderboard">Leaderboard</Link>
+          </>
+        )}
       </nav>
       <Routes>
-        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth" element={<AuthPage setUser={setUser} />} />
         <Route path="/game/:gameId" element={<GameDetailsPage />} />
-        <Route path="/game" element={<GamePage />} />
-        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/game" element={<GamePage user={user} />} />
+        <Route path="/history" element={user ? <HistoryPage /> : <div>Please login to view history.</div>} />
         <Route path="/" element={<HomePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
       </Routes>

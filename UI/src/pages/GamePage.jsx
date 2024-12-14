@@ -1,12 +1,63 @@
-import { useState } from "react";
-import { createGame, makeGuess } from "../utils/api";
-import { GameBoard } from "../components/Game/GameBoard";
-import { HintCircles } from "../components/Game/HintCircles"; // Ensure correct import path
+/* eslint-disable react/prop-types */
+import { useState, useEffect } from "react";
+import { createGame, makeGuess, markGameAsLost } from "../utils/api";
+import { GameBoard, HintCircles } from "../components/Game"; // Now it is letting me import from Game/index.jsx...
 
-export function GamePage() {
+export function GamePage({ user }) {
     const [difficulty, setDifficulty] = useState("medium");
     const [game, setGame] = useState(null);
     const [attempts, setAttempts] = useState([]);
+
+    // Only restore game if user is logged in and matches the stored user_id
+    const [ongoingGameId, setOngoingGameId] = useState(() => {
+        const storedUserId = localStorage.getItem("ongoing_game_user_id");
+        if (user && storedUserId && storedUserId === String(user.id)) {
+            return localStorage.getItem("ongoing_game_id");
+        }
+        return null;
+    });
+
+    const [createdByUser, setCreatedByUser] = useState(() => {
+        const storedUserId = localStorage.getItem("ongoing_game_user_id");
+        if (user && storedUserId && storedUserId === String(user.id)) {
+            return localStorage.getItem("ongoing_game_created_by_user") === "true";
+        }
+        return false;
+    });
+
+    useEffect(() => {
+        // Attempt to resume only if we have a matching user and ongoingGameId
+        if (user && ongoingGameId && !game) {
+            const shouldResume = window.confirm("You have an ongoing game. Resume?");
+            if (shouldResume) {
+                const savedDifficulty = localStorage.getItem("ongoing_game_difficulty") || "medium";
+                const savedAttempts = JSON.parse(localStorage.getItem("ongoing_game_attempts") || "[]");
+                const savedAttemptsLeft = parseInt(localStorage.getItem("ongoing_game_attempts_left") || "10", 10);
+                const savedLength = (savedDifficulty === "medium") ? 4 : 6;
+                setDifficulty(savedDifficulty);
+                setGame({
+                    game_id: ongoingGameId,
+                    length: savedLength,
+                    is_sequence_locally_generated: true,
+                    attempts_left: savedAttemptsLeft,
+                    status: "ongoing"
+                });
+                setAttempts(savedAttempts);
+            } else {
+                if (createdByUser) {
+                    markGameAsLost(ongoingGameId);
+                }
+                localStorage.removeItem("ongoing_game_id");
+                localStorage.removeItem("ongoing_game_difficulty");
+                localStorage.removeItem("ongoing_game_attempts");
+                localStorage.removeItem("ongoing_game_attempts_left");
+                localStorage.removeItem("ongoing_game_created_by_user");
+                localStorage.removeItem("ongoing_game_user_id");
+                setOngoingGameId(null);
+                setCreatedByUser(false);
+            }
+        }
+    }, [ongoingGameId, game, user, createdByUser]);
 
     async function startGame() {
         try {
@@ -16,9 +67,25 @@ export function GamePage() {
                     game_id: data.game_id,
                     length: data.length,
                     is_sequence_locally_generated: data.is_sequence_locally_generated,
-                    attempts_left: 10
+                    attempts_left: 10,
+                    status: "ongoing"
                 });
                 setAttempts([]);
+                // Store game only if user is logged in
+                if (user) {
+                    localStorage.setItem("ongoing_game_id", data.game_id);
+                    localStorage.setItem("ongoing_game_difficulty", difficulty);
+                    localStorage.setItem("ongoing_game_attempts", JSON.stringify([]));
+                    localStorage.setItem("ongoing_game_attempts_left", "10");
+                    localStorage.setItem("ongoing_game_created_by_user", "true");
+                    localStorage.setItem("ongoing_game_user_id", String(user.id));
+                    setOngoingGameId(data.game_id);
+                    setCreatedByUser(true);
+                } else {
+                    // Not logged in, do not store any ongoing game info
+                    setOngoingGameId(null);
+                    setCreatedByUser(false);
+                }
                 console.log("Game started:", data);
             } else if (error) {
                 console.error("Error starting game:", error);
@@ -36,6 +103,11 @@ export function GamePage() {
             return;
         }
 
+        if (guessString.length !== game.length) {
+            alert(`You must enter exactly ${game.length} digits before guessing.`);
+            return;
+        }
+
         try {
             const { data, error } = await makeGuess(game.game_id, guessString);
             if (data) {
@@ -48,17 +120,35 @@ export function GamePage() {
                     score: guessResult.score || 0
                 };
 
-                setAttempts(prevAttempts => [...prevAttempts, newAttempt]);
+                const updatedAttempts = [...attempts, newAttempt];
+                setAttempts(updatedAttempts);
 
-                setGame(prevGame => ({
-                    ...prevGame,
-                    attempts_left: guessResult.attempts_left
-                }));
+                const updatedGame = {
+                    ...game,
+                    attempts_left: guessResult.attempts_left,
+                    status: guessResult.status,
+                    score: guessResult.score || game.score
+                };
+                setGame(updatedGame);
+
+                // Update localStorage only if user is logged in
+                if (user) {
+                    localStorage.setItem("ongoing_game_attempts", JSON.stringify(updatedAttempts));
+                    localStorage.setItem("ongoing_game_attempts_left", guessResult.attempts_left.toString());
+                }
 
                 console.log("Guess made:", guessResult);
 
                 if (guessResult.status !== "ongoing") {
                     alert(`Game ended: ${guessResult.status}${guessResult.score ? `, Score: ${guessResult.score}` : ""}`);
+                    localStorage.removeItem("ongoing_game_id");
+                    localStorage.removeItem("ongoing_game_difficulty");
+                    localStorage.removeItem("ongoing_game_attempts");
+                    localStorage.removeItem("ongoing_game_attempts_left");
+                    localStorage.removeItem("ongoing_game_created_by_user");
+                    localStorage.removeItem("ongoing_game_user_id");
+                    setOngoingGameId(null);
+                    setCreatedByUser(false);
                 }
             } else if (error) {
                 console.error("Error making guess:", error);
@@ -70,11 +160,17 @@ export function GamePage() {
         }
     }
 
+    async function startNewGameAfterEnd() {
+        setGame(null);
+        setAttempts([]);
+    }
+
     return (
         <div>
             {!game && (
                 <div>
                     <h2>Start a New Game</h2>
+                    {!user && <p>You are not logged in. You can still play but your results won&apos;t be saved under an account.</p>}
                     <label>
                         Difficulty:
                         <select value={difficulty} onChange={e => setDifficulty(e.target.value)}>
@@ -89,7 +185,14 @@ export function GamePage() {
                 <div>
                     <h2>Game ID: {game.game_id}</h2>
                     <p>Attempts Left: {game.attempts_left}</p>
-                    <GameBoard length={game.length} onSubmitGuess={handleGuess} />
+                    {game.status !== "ongoing" && (
+                        <div>
+                            <button onClick={startNewGameAfterEnd}>Start Another Game</button>
+                        </div>
+                    )}
+                    {game.status === "ongoing" && (
+                        <GameBoard length={game.length} onSubmitGuess={handleGuess} />
+                    )}
                     <h3>Previous Attempts:</h3>
                     {attempts.length === 0 ? (
                         <p>No attempts yet.</p>

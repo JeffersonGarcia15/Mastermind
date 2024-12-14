@@ -92,6 +92,11 @@ def start_game():
     return success_response(response_data)
 
 
+# Since the attempts table is not connected to the users table, in theory another user who has your gameID could submit guesses on your behalf
+# So in order to fix that, we will first check if there is a user_id associated with the game
+# and if so, the current user_id must match.
+# For now, a guest user, someone without an account, could be submitting another guest's guess.
+# And at the moment, given the time constraint, that is "okay", since that doesn't affect the leaderboard which heavily depends on the user games
 @game_routes.route("/guess", methods=["POST"])
 def make_guess():
     try:
@@ -113,12 +118,16 @@ def make_guess():
             return error_response("Game ID not found.", 404)
         sequence = game.solution
         match_record_data = MatchRecord.query.filter_by(game_id=game.id).first()
-        status = None
-        if match_record_data:
-            status = match_record_data.result
 
-        if status and status.value in ["win", "lose"]:
+        if match_record_data:
             return error_response("This game has already ended.", 400)
+
+        # Check ownership:
+        # If the game has a user_id, it means it was created by a logged-in user at the time.
+        # If currently not logged in or logged in as a different user, do not allow guess.
+        if game.user_id is not None:
+            if not current_user.is_authenticated or current_user.id != game.user_id:
+                return error_response("You are not authorized to guess this game.", 403)
 
         if (
             not isinstance(guess, str)
@@ -186,3 +195,20 @@ def make_guess():
 
     except Exception as error:
         return error_response(str(error), 500)
+
+
+@game_routes.route("/force_lose/<string:game_id>", methods=["POST"])
+def force_lose(game_id):
+    game = Game.query.filter_by(id=game_id).first()
+    if not game:
+        return error_response("Game not found.", 404)
+    match_record_data = MatchRecord.query.filter_by(game_id=game_id).first()
+    
+    if match_record_data:
+        return error_response("This game has already ended.", 400)
+    
+    match_record = MatchRecord(game_id=game_id, result=Result.lose, score=0)
+    db.session.add(match_record)
+    db.session.commit()
+    
+    return success_response("Previous game successfully marked as lost.")
