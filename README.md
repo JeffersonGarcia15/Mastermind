@@ -22,6 +22,10 @@ This repository demonstrates clean code organization, testing, CI/CD with GitHub
 
 ---
 
+Here is a walkthrough for how to play in the website and a couple of rules!
+
+Complete walkthrough here with all the features: https://www.youtube.com/watch?v=9HUrlxFSY-w
+
 ## Features
 
 - **User Authentication:**  
