@@ -188,6 +188,10 @@ After setting up Docker, if you want the desktop version please download it from
 
 If by this point you are tired of reading, you can watch this video where I setup the app from scratch while having the prerequisites installed so that the walkthrough wasn't too long.
 
+Part1: https://youtu.be/m74H-jvU5PM
+
+Part2: https://youtu.be/9HUrlxFSY-w
+
 ### Backend Setup
 
 **Clone the Repository:**
