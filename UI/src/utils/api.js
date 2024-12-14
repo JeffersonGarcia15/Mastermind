@@ -50,6 +50,10 @@ export function makeGuess(gameId, guess) {
   });
 }
 
+export function markGameAsLost(gameId) {
+  return request(`/game/force_lose/${gameId}`, { method: "POST" });
+}
+
 // History & Details
 export function getHistory() {
   return request("/history/all_games");

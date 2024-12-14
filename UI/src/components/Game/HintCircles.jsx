@@ -19,7 +19,7 @@ export function HintCircles({ correct_positions, correct_numbers_only, total }) 
                     display: "inline-block",
                     width: "15px",
                     height: "15px",
-                    backgroundColor: c === "transparent" ? "lightgray" : c,
+                    backgroundColor: c,
                     borderRadius: "50%",
                     marginRight: "3px",
                     border: "1px solid #000"
