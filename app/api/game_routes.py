@@ -113,11 +113,8 @@ def make_guess():
             return error_response("Game ID not found.", 404)
         sequence = game.solution
         match_record_data = MatchRecord.query.filter_by(game_id=game.id).first()
-        status = None
+        
         if match_record_data:
-            status = match_record_data.result
-
-        if status and status.value in ["win", "lose"]:
             return error_response("This game has already ended.", 400)
 
         if (
@@ -186,3 +183,20 @@ def make_guess():
 
     except Exception as error:
         return error_response(str(error), 500)
+
+
+@game_routes.route("/force_lose/<string:game_id>", methods=["POST"])
+def force_lose(game_id):
+    game = Game.query.filter_by(id=game_id).first()
+    if not game:
+        return error_response("Game not found.", 404)
+    match_record_data = MatchRecord.query.filter_by(game_id=game_id).first()
+    
+    if match_record_data:
+        return error_response("This game has already ended.", 400)
+    
+    match_record = MatchRecord(game_id=game_id, result=Result.lose, score=0)
+    db.session.add(match_record)
+    db.session.commit()
+    
+    return success_response("Previous game successfully marked as lost.")

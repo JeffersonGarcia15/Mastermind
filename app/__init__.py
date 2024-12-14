@@ -9,6 +9,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
 from datetime import timedelta
+import re
 import os
 import click
 import random
@@ -45,7 +46,9 @@ def create_app():
     cors.init_app(
         app,
         supports_credentials=True,
-        resources={r"/api/v2/*": {"origins": "http://localhost:5173"}},
+        resources={
+            re.compile(r"^/api/v2/.*$"): {"origins": "http://localhost:5173"},
+        },
         allow_headers=["Content-Type", "Authorization"],
         expose_headers=["Content-Type", "Authorization"],
     )
@@ -82,7 +85,12 @@ def create_app():
     # https://flask.palletsprojects.com/en/stable/errorhandling/
     @app.errorhandler(429)
     def ratelimit_handler(error):
-        return error_response("Rate limit exceeded: 5 per minute.", 429)
+        response = error_response("Rate limit exceeded: 5 per minute.", 429)
+        response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Expose-Headers"] = "Content-Type, Authorization"
+        return response
 
     @app.cli.command("create-db")
     def create_db():
