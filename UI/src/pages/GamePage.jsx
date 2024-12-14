@@ -7,14 +7,16 @@ export function GamePage({ user }) {
     const [difficulty, setDifficulty] = useState("medium");
     const [game, setGame] = useState(null);
     const [attempts, setAttempts] = useState([]);
+
+    // Only restore game if user is logged in and matches the stored user_id
     const [ongoingGameId, setOngoingGameId] = useState(() => {
         const storedUserId = localStorage.getItem("ongoing_game_user_id");
-        // Only restore if current user matches stored user ID. This is to avoid the bug of users playing other user's game when restoring a game
         if (user && storedUserId && storedUserId === String(user.id)) {
             return localStorage.getItem("ongoing_game_id");
         }
         return null;
     });
+
     const [createdByUser, setCreatedByUser] = useState(() => {
         const storedUserId = localStorage.getItem("ongoing_game_user_id");
         if (user && storedUserId && storedUserId === String(user.id)) {
@@ -22,45 +24,25 @@ export function GamePage({ user }) {
         }
         return false;
     });
-    const [ongoingGameUserId, setOngoingGameUserId] = useState(() => {
-        const storedUserId = localStorage.getItem("ongoing_game_user_id");
-        if (user && storedUserId && storedUserId === String(user.id)) {
-            return storedUserId;
-        }
-        return null;
-    });
 
     useEffect(() => {
-        if (user && ongoingGameId && !game && ongoingGameUserId && ongoingGameUserId === String(user.id)) {
+        // Attempt to resume only if we have a matching user and ongoingGameId
+        if (user && ongoingGameId && !game) {
             const shouldResume = window.confirm("You have an ongoing game. Resume?");
             if (shouldResume) {
-                if (createdByUser && !user) {
-                    alert("Cannot resume a user-associated game while logged out.");
-                    markGameAsLost(ongoingGameId);
-                    localStorage.removeItem("ongoing_game_id");
-                    localStorage.removeItem("ongoing_game_difficulty");
-                    localStorage.removeItem("ongoing_game_attempts");
-                    localStorage.removeItem("ongoing_game_attempts_left");
-                    localStorage.removeItem("ongoing_game_created_by_user");
-                    localStorage.removeItem("ongoing_game_user_id");
-                    setOngoingGameId(null);
-                    setCreatedByUser(false);
-                    setOngoingGameUserId(null);
-                } else {
-                    const savedDifficulty = localStorage.getItem("ongoing_game_difficulty") || "medium";
-                    const savedAttempts = JSON.parse(localStorage.getItem("ongoing_game_attempts") || "[]");
-                    const savedAttemptsLeft = parseInt(localStorage.getItem("ongoing_game_attempts_left") || "10", 10);
-                    const savedLength = (savedDifficulty === "medium") ? 4 : 6;
-                    setDifficulty(savedDifficulty);
-                    setGame({
-                        game_id: ongoingGameId,
-                        length: savedLength,
-                        is_sequence_locally_generated: true,
-                        attempts_left: savedAttemptsLeft,
-                        status: "ongoing"
-                    });
-                    setAttempts(savedAttempts);
-                }
+                const savedDifficulty = localStorage.getItem("ongoing_game_difficulty") || "medium";
+                const savedAttempts = JSON.parse(localStorage.getItem("ongoing_game_attempts") || "[]");
+                const savedAttemptsLeft = parseInt(localStorage.getItem("ongoing_game_attempts_left") || "10", 10);
+                const savedLength = (savedDifficulty === "medium") ? 4 : 6;
+                setDifficulty(savedDifficulty);
+                setGame({
+                    game_id: ongoingGameId,
+                    length: savedLength,
+                    is_sequence_locally_generated: true,
+                    attempts_left: savedAttemptsLeft,
+                    status: "ongoing"
+                });
+                setAttempts(savedAttempts);
             } else {
                 if (createdByUser) {
                     markGameAsLost(ongoingGameId);
@@ -73,10 +55,9 @@ export function GamePage({ user }) {
                 localStorage.removeItem("ongoing_game_user_id");
                 setOngoingGameId(null);
                 setCreatedByUser(false);
-                setOngoingGameUserId(null);
             }
         }
-    }, [ongoingGameId, game, user, createdByUser, ongoingGameUserId]);
+    }, [ongoingGameId, game, user, createdByUser]);
 
     async function startGame() {
         try {
@@ -90,6 +71,7 @@ export function GamePage({ user }) {
                     status: "ongoing"
                 });
                 setAttempts([]);
+                // Store game only if user is logged in
                 if (user) {
                     localStorage.setItem("ongoing_game_id", data.game_id);
                     localStorage.setItem("ongoing_game_difficulty", difficulty);
@@ -99,12 +81,10 @@ export function GamePage({ user }) {
                     localStorage.setItem("ongoing_game_user_id", String(user.id));
                     setOngoingGameId(data.game_id);
                     setCreatedByUser(true);
-                    setOngoingGameUserId(String(user.id));
                 } else {
-                    // Do not store any game if not logged in
+                    // Not logged in, do not store any ongoing game info
                     setOngoingGameId(null);
                     setCreatedByUser(false);
-                    setOngoingGameUserId(null);
                 }
                 console.log("Game started:", data);
             } else if (error) {
@@ -151,6 +131,7 @@ export function GamePage({ user }) {
                 };
                 setGame(updatedGame);
 
+                // Update localStorage only if user is logged in
                 if (user) {
                     localStorage.setItem("ongoing_game_attempts", JSON.stringify(updatedAttempts));
                     localStorage.setItem("ongoing_game_attempts_left", guessResult.attempts_left.toString());
@@ -168,7 +149,6 @@ export function GamePage({ user }) {
                     localStorage.removeItem("ongoing_game_user_id");
                     setOngoingGameId(null);
                     setCreatedByUser(false);
-                    setOngoingGameUserId(null);
                 }
             } else if (error) {
                 console.error("Error making guess:", error);
